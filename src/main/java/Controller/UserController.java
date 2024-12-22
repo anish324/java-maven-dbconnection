@@ -1,41 +1,40 @@
 package com.example.demo.controller;
 
-import com.example.demo.model.User;  // Make sure this import is correct!
-import com.example.demo.service.UserService;
+import com.example.demo.model.User;
+import com.example.demo.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import javax.validation.Valid;
 import java.util.List;
-import java.util.Optional;
 
-@RestController  // Marks this class as a REST controller
-@RequestMapping("/users")  // Base URL for all user-related endpoints
+@RestController
+@RequestMapping("/users")
 public class UserController {
 
-    @Autowired  // Injects the UserService bean
-    private UserService userService;
+    @Autowired
+    private UserRepository userRepository;
 
-    // Endpoint to create a new user
-    @PostMapping
-    public User createUser(@RequestBody User user) {
-        return userService.saveUser(user);
+    // Batch Insert Endpoint
+    @PostMapping("/batch")
+    public ResponseEntity<List<User>> addUsers(@Valid @RequestBody List<User> users) {
+        List<User> savedUsers = userRepository.saveAll(users); // Batch insert
+        return ResponseEntity.ok(savedUsers);
     }
 
-    // Endpoint to get all users
-    @GetMapping
-    public List<User> getAllUsers() {
-        return userService.getAllUsers();
-    }
-
-    // Endpoint to get a user by ID
-    @GetMapping("/{id}")
-    public Optional<User> getUserById(@PathVariable Long id) {
-        return userService.getUserById(id);
-    }
-
-    // Endpoint to delete a user by ID
-    @DeleteMapping("/{id}")
-    public void deleteUser(@PathVariable Long id) {
-        userService.deleteUser(id);
+    // Retrieve All Users
+    @GetMapping("/")
+    public ResponseEntity<List<User>> getAllUsers(
+            @RequestParam(defaultValue = "0") int page,  // Default page is 0 (first page)
+            @RequestParam(defaultValue = "10") int size // Default size is 10 records
+    ) {
+        Pageable pageable = PageRequest.of(page, size); // Create pagination object
+        Page<User> usersPage = userRepository.findAll(pageable); // Fetch data with pagination
+        List<User> users = usersPage.getContent(); // Extract content from the Page object
+        return ResponseEntity.ok(users);
     }
 }
